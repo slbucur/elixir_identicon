@@ -7,6 +7,8 @@ defmodule Identicon do
     input
     |> hash_input
     |> pick_color
+    |> build_grid
+    |> filter_odd_squares
   end
 
   @doc """
@@ -39,5 +41,53 @@ defmodule Identicon do
     %Identicon.Image{image | color: {r, g, b}}
   end
 
+  def mirror_row([a,b,c]) do
+    [a, b, c, b, a]
+  end
+
+
+  @doc """
+  Build a flat grid based on an image generated with hash_input
+
+  ## Examples
+      iex> image = Identicon.hash_input("banana")
+      iex> Identicon.build_grid(image)
+      %Identicon.Image{color: nil,
+        grid: [{114, 0}, {179, 1}, {2, 2}, {179, 3}, {114, 4}, {191, 5}, {41, 6},
+        {122, 7}, {41, 8}, {191, 9}, {34, 10}, {138, 11}, {117, 12}, {138, 13},
+        {34, 14}, {115, 15}, {1, 16}, {35, 17}, {1, 18}, {115, 19}, {239, 20},
+        {239, 21}, {124, 22}, {239, 23}, {239, 24}],
+        hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65]}
+
+  """
+  def build_grid(%Identicon.Image{hex: number_list} = image) do
+    grid =
+      number_list
+      |> Enum.chunk(3)
+      |> Enum.map(&mirror_row/1)
+      |> List.flatten
+      |> Enum.with_index
+
+    %Identicon.Image{image| grid: grid}
+  end
+
+  @doc """
+  Filters the odd quares out of the image
+
+  ## Examples
+      iex> image = Identicon.hash_input("banana") |> Identicon.build_grid
+      iex> Identicon.filter_odd_squares(image)
+      %Identicon.Image{color: nil,
+        grid: [{114, 0}, {2, 2}, {114, 4}, {122, 7}, {34, 10}, {138, 11}, {138, 13},
+        {34, 14}, {124, 22}],
+        hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65]}
+
+  """
+  def filter_odd_squares(%Identicon.Image{grid: grid} = image) do
+    grid = Enum.filter grid, fn({code, _index}) ->
+      rem(code, 2) == 0
+    end
+    %Identicon.Image{image| grid: grid}
+  end
 
 end
